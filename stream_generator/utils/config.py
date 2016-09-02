@@ -9,14 +9,15 @@ DATABASE_CONFIG = {
     'database': 'test_DI'
 }
 
-# The car speed heart beat in seconds
-SPEED_HEART_BEAT = 5 # In every XX seconds the car will report its current speed
 # The time zone of the New York
 TIME_ZONE = 'EDT'
 # The supply waiting time in seconds
-REQUEST_WAITING = 8 * 60
+REQUEST_WAITING = 4 * 60
 # The driver lasting time in seconds
-DRIVER_LASTING = 5 * 60
+DRIVER_LASTING = 3 * 60
+# Driver Beating Interval
+DRIVER_HEART_BEAT_INTERVAL = 5
+
 
 
 

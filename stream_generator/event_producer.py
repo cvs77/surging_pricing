@@ -13,8 +13,9 @@ from geopy.distance import vincenty
 from geopy.geocoders import Nominatim
 
 from stream_generator.utils.config import DATABASE_CONFIG
-from stream_generator.utils.config import SPEED_HEART_BEAT
 from stream_generator.utils.db_helper import StreamDataDbHelper
+
+from stream_generator.utils.config import  DRIVER_LASTING, REQUEST_WAITING, DRIVER_HEART_BEAT_INTERVAL
 
 
 def _convert_date_to_ts(date_str, timezone_offset=-4):
@@ -27,7 +28,7 @@ def _congestion_heartbeat(trip_start_ts, trip_end_ts, start_lalo, end_lalo):
     trip_duration = trip_end_ts - trip_start_ts
     trip_length = vincenty(start_lalo, end_lalo).miles
     speed = trip_length / trip_duration
-    count = int(trip_duration / SPEED_HEART_BEAT)
+    count = int(trip_duration / DRIVER_HEART_BEAT_INTERVAL)
     long_length = end_lalo[1] - start_lalo[1]
     la_length = end_lalo[0] - start_lalo[0]
     new_record = []
@@ -64,7 +65,8 @@ def product_events(records):
         drop_off_long = Decimal(fields[7])
         drop_off_la = Decimal(fields[8])
         # Get the uer hash
-        user_id = md5(trip_start_time + fields[5] + fields[6]).hexdigest()
+        user_id = md5(str(trip_start_ts - REQUEST_WAITING) + fields[5] + fields[6]).hexdigest()
+        driver_id = md5(str(trip_start_ts - DRIVER_LASTING) + fields[5] + fields[6]).hexdigest()
         # Generate driver speed heartbeat events
         speed_heartbeat = _congestion_heartbeat(trip_start_ts, trip_end_ts, (pick_up_la, pick_up_long), (drop_off_la, drop_off_long))
         for beat in speed_heartbeat:
@@ -74,9 +76,48 @@ def product_events(records):
             tem['lo'] = beat[1]
             tem['la'] = beat[2]
             tem['v'] = beat[3]
-            tem['uid'] = user_id
+            tem['uid'] = driver_id
             db_helper.insert(tem)
+        # Generate Driver beating data
+        # The driver beating happen before the strip start and after the trip end
+        db_helper.insert({
+            "type" : "NOT_FREE",
+            "ts": trip_start_ts,
+            "lo": pick_up_long,
+            "la": pick_up_la,
+            "v": -1,
+            "uid": driver_id
+        })
+        for i in range(DRIVER_LASTING / DRIVER_HEART_BEAT_INTERVAL):
+            tem = {'type': "FREE",
+                   'ts': trip_start_ts - i * DRIVER_HEART_BEAT_INTERVAL,
+                   'lo': pick_up_long,
+                   'la': pick_up_la,
+                   'v': -1,
+                   "uid": driver_id}
+            db_helper.insert(tem)
+            tem = {'type': "FREE",
+                   'ts': trip_end_ts + i * DRIVER_HEART_BEAT_INTERVAL,
+                   'lo': drop_off_long,
+                   'la': drop_off_la,
+                   'v': -1,
+                   "uid": driver_id}
+            db_helper.insert(tem)
+        # Generate User Request and User request End
+        db_helper.insert( {
+            "type": "REQUEST",
+            "ts": trip_start_ts - REQUEST_WAITING,
+            "lo": pick_up_long,
+            "la": pick_up_la,
+            "v": -1,
+            "uid": user_id
+        } )
+        db_helper.insert( {
+            "type": "REQUEST_END",
+            "ts": trip_start_ts,
+            "lo": pick_up_long,
+            "la": pick_up_la,
+            "v": -1,
+            "uid": user_id
+        })
 
-
-
-    print "Helloworld"
