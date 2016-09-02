@@ -78,7 +78,7 @@ def reconnect(func):
     return _func
 
 
-from host.utils.config import BATCH_SIZE
+from stream_generator.utils.config import BATCH_SIZE
 
 _DEFAULT_BATCH_SIZE = BATCH_SIZE
 _DEFAULT_SLEEP_TIME = 0  # seconds

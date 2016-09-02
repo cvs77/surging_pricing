@@ -1,5 +1,5 @@
 # The Data base config
-
+BATCH_SIZE = 500
 DATABASE_CONFIG = {
     'host': "10.160.241.142",
     'type': "mysql",
