@@ -1,21 +1,18 @@
 #! /usr/bin/etc python
 # -*- coding: utf-8 -*-
-
-__author__ = 'Gao Ming'
-import time
-import pytz
+# __author__ = 'Gao Ming'
+"""
+Convert the raw log from file to the driver events and store the events to the database
+"""
 import datetime
 from decimal import *
 from hashlib import md5
-from random import random
 
 from geopy.distance import vincenty
-from geopy.geocoders import Nominatim
 
 from stream_generator.utils.config import DATABASE_CONFIG
 from stream_generator.utils.db_helper import StreamDataDbHelper
-
-from stream_generator.utils.config import  DRIVER_LASTING, REQUEST_WAITING, DRIVER_HEART_BEAT_INTERVAL
+from stream_generator.utils.config import DRIVER_LASTING, REQUEST_WAITING, DRIVER_HEART_BEAT_INTERVAL
 
 
 def _convert_date_to_ts(date_str, timezone_offset=-4):
@@ -23,6 +20,7 @@ def _convert_date_to_ts(date_str, timezone_offset=-4):
     time_stamp_gmt = (date_time - datetime.datetime(1970, 1, 1)).total_seconds()
     time_stamp_edt = time_stamp_gmt - timezone_offset * 3600
     return time_stamp_edt
+
 
 def _congestion_heartbeat(trip_start_ts, trip_end_ts, start_lalo, end_lalo):
     trip_duration = trip_end_ts - trip_start_ts
@@ -79,15 +77,16 @@ def product_events(records):
             tem['uid'] = driver_id
             db_helper.insert(tem)
         # Generate Driver beating data
-        # The driver beating happen before the strip start and after the trip end
+        # Generate dreiver
         db_helper.insert({
-            "type" : "NOT_FREE",
+            "type": "NOT_FREE",
             "ts": trip_start_ts,
             "lo": pick_up_long,
             "la": pick_up_la,
             "v": -1,
             "uid": driver_id
         })
+        # The driver beating happen before the strip start and after the trip end
         for i in range(DRIVER_LASTING / DRIVER_HEART_BEAT_INTERVAL):
             tem = {'type': "FREE",
                    'ts': trip_start_ts - i * DRIVER_HEART_BEAT_INTERVAL,
@@ -104,15 +103,15 @@ def product_events(records):
                    "uid": driver_id}
             db_helper.insert(tem)
         # Generate User Request and User request End
-        db_helper.insert( {
+        db_helper.insert({
             "type": "REQUEST",
             "ts": trip_start_ts - REQUEST_WAITING,
             "lo": pick_up_long,
             "la": pick_up_la,
             "v": -1,
             "uid": user_id
-        } )
-        db_helper.insert( {
+        })
+        db_helper.insert({
             "type": "REQUEST_END",
             "ts": trip_start_ts,
             "lo": pick_up_long,
