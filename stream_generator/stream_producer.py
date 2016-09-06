@@ -40,15 +40,17 @@ for i in range(num_worker_threads):
 while True:
     pos = 0
     batch_size = 500
-    if event_queue.qsize() > 100:
-        time.sleep(60)
+    if event_queue.qsize() > 1000:
+        time.sleep(2)
         continue
     records = db_helper.load(pos, batch_size)
     if not records:
         break
+    # Adjust time offset
     time_offset = float(records[1]['ts']) - time.time()
     for record in records:
         event_queue.put(record)
+    pos += batch_size
 
 
 
