@@ -1,1 +1,4 @@
 data/
+stream_process/.idea/
+*.pyc
+.idea/
